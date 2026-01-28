@@ -1,0 +1,87 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2821
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fnil\fcharset0 HelveticaNeue;\f1\fnil\fcharset0 AppleColorEmoji;}
+{\colortbl;\red255\green255\blue255;\red0\green0\blue0;}
+{\*\expandedcolortbl;;\cssrgb\c0\c0\c0;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\deftab720
+\pard\pardeftab720\partightenfactor0
+
+\f0\fs22 \cf2 import streamlit as st\
+import pandas as pd\
+import plotly.express as px\
+\
+# 1. Page Configuration\
+st.set_page_config(page_title="Haryana Groundwater Intelligence", layout="wide")\
+st.title("
+\f1 \uc0\u55356 \u57098 
+\f0  Haryana Groundwater: Geospatial Analysis & Solutions")\
+st.markdown("### Applied Geospatial Reasoning through Regional Micro-Analysis")\
+\
+# 2. Data Loading Function\
+@st.cache_data\
+def load_and_clean_data():\
+    # Loading the provided 2020 Dataset\
+    df = pd.read_csv(\'91haryana_data.csv.csv', skiprows=2)\
+    \
+    # Mapping names for GeoJSON compatibility\
+    name_map = \{'Gurugram': 'Gurgaon', 'Mewat': 'Nuh', 'Yamuna Nagar': 'Yamunanagar', 'Sonipat': 'Sonepat'\}\
+    df['District_Map'] = df['District Name'].replace(name_map)\
+    \
+    # Calculating Solution Logic\
+    def get_solution(row):\
+        stage = row['Stage of Goundwater Development (%)']\
+        if stage > 120: return "Critical: Crop Diversification"\
+        elif stage > 100: return "High Risk: Aquifer Recharge"\
+        elif row['Annaul Domestic and Industry Draft'] > 10000: return "Urban: Rainwater Harvesting"\
+        else: return "Safe: Monitor Usage"\
+    \
+    df['Solution_Strategy'] = df.apply(get_solution, axis=1)\
+    \
+    # Projection for 2025\
+    df['Projected_2025'] = ((df['Annual Groundwater Draft(Total)'] + \
+                             df['Projected Demand for Domestic & Industrial Use Upto 2025']) \
+                            / df['Net Groundwater Availability']) * 100\
+    return df\
+\
+try:\
+    df = load_and_clean_data()\
+    geojson_url = "https://raw.githubusercontent.com/HindustanTimesLabs/shapefiles/master/statewise/haryana/district.json"\
+\
+    # 3. Navigation Tabs\
+    tab1, tab2, tab3 = st.tabs(["
+\f1 \uc0\u55357 \u56525 
+\f0  The Problem (2020)", "
+\f1 \uc0\u55357 \u56481 
+\f0  Proposed Solutions", "
+\f1 \uc0\u55357 \u56622 
+\f0  2025 Projection"])\
+\
+    with tab1:\
+        st.subheader("Current Stage of Groundwater Extraction (%)")\
+        fig1 = px.choropleth(df, geojson=geojson_url, featureidkey='properties.district',\
+                            locations='District_Map', color='Stage of Goundwater Development (%)',\
+                            color_continuous_scale="Reds", hover_name='District Name')\
+        fig1.update_geos(fitbounds="locations", visible=False)\
+        st.plotly_chart(fig1, use_container_width=True)\
+        st.write("**Insight:** North-Eastern districts show extraction levels exceeding 200%.")\
+\
+    with tab2:\
+        st.subheader("Data-Driven Policy Intervention Map")\
+        fig2 = px.choropleth(df, geojson=geojson_url, featureidkey='properties.district',\
+                            locations='District_Map', color='Solution_Strategy',\
+                            color_discrete_map=\{\
+                                "Critical: Crop Diversification": "#8b0000",\
+                                "High Risk: Aquifer Recharge": "#ff4500",\
+                                "Urban: Rainwater Harvesting": "#4169e1",\
+                                "Safe: Monitor Usage": "#228b22"\
+                            \})\
+        fig2.update_geos(fitbounds="locations", visible=False)\
+        st.plotly_chart(fig2, use_container_width=True)\
+\
+    with tab3:\
+        st.subheader("Forecasted Stress Levels by 2025")\
+        st.bar_chart(df.set_index('District Name')['Projected_2025'])\
+        st.warning("By 2025, Kurukshetra is projected to reach an extraction stage of 263.9%.")\
+\
+except Exception as e:\
+    st.error(f"Error: \{e\}. Please ensure 'haryana_data.csv' is in the repository.")}
